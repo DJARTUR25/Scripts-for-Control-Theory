@@ -21,8 +21,6 @@ def R_LQM():
     alst[:, 2] = x0
     print(f"k = {1}: a = {x0[0]:.4f}, b = {x0[1]:.4f}")         
 
-    print (RM[2, :])
-
     for k in range(2, n):
         H0 = H0 + np.outer(RM[k, :].transpose(), RM[k, :])          # H_k = H_k-1 + (C_k)^T * C_k
         # print (H0) # для отладки
