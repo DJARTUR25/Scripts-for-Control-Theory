@@ -19,6 +19,15 @@ def solve_continuous(A, B, Q, R, x0, TIME=10.0, n_points=1001):
 
     A_cl = A - (B @ U)   # матрица замкнутой системы
 
+    eigen_values = np.linalg.eigvals(A_cl)  # вычисление собственных чисел замкнутой системы
+    for i in range(len(eigen_values)):
+        if np.real(eigen_values[i]) >= 0:
+            print("Замкнутая система неустойчива; есть собственное число > 0:")
+            print(eigen_values[i])
+    
+    print ("С.ч. замкнутой системы:")
+    print(eigen_values)
+
     t_eval = np.linspace(0, TIME, n_points) # создание временного вектора для моделирования оптимального управления и траекторий
 
     def system(t, x):       # функция для решения системы методом solve_ivp; возвращает dx/dt = A_cl @ x
@@ -53,7 +62,7 @@ def plot_results(t, x, u):      # функция построения графи
     axes[0].legend()
     axes[0].set_xlabel('t')
     axes[0].set_ylabel('x(t)')
-    axes[0].set_title('States')
+    axes[0].set_title('Траектории состояний замкнутой системы')
 
     # график оптимального управления замкнутой системы
     if m == 1:
@@ -65,7 +74,7 @@ def plot_results(t, x, u):      # функция построения графи
     axes[1].grid(True)
     axes[1].set_xlabel('t')
     axes[1].set_ylabel('u(t)')
-    axes[1].set_title('Control input')
+    axes[1].set_title('оптимальное управление замкнутой системы')
 
     plt.tight_layout()
     plt.show()
@@ -74,19 +83,23 @@ if __name__ == "__main__":
 
     # Ввод матриц
 
-    A = np.array([[0.0, 1.0],
-                  [0.0, 0.0]])
+    A = np.array([[1.0, 0.0, 1.0],
+                  [0.0, -1.0, 1.0],
+                  [0.0, 0.0, 1.0]])
     
     B = np.array([[0.0],
+                  [0.0],
                   [1.0]])
     
-    Q = np.array([[1.0, 0.0],
-                  [0.0, 2.0]])
+    Q = np.array([[1.0, 0.0, 0.0],
+                  [0.0, 1.0, 0.0],
+                  [0.0, 0.0, 1.0]])
     
     R = np.array([[1.0]])
 
-    x0 = np.array([[0.4],
-                   [0.4]])  # начальное приближение
+    x0 = np.array([[0.1],
+                   [0.1],
+                   [0.1]])  # начальное приближение
 
     X, U, J, x_t, u_t, t_eval = solve_continuous(A, B, Q, R, x0) # решение непрерывного алгебраического уравнения Рикатти
     
