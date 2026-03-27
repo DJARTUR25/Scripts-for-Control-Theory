@@ -1,36 +1,35 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def ols_estimation_2():
-    # Пользовательские данные
-    x_vals = [0.6931, 1.0986, 1.3863, 1.6094, 1.7918]
-    y_vals = [0.4055, 1.0986, 1.5041, 1.9459, 3.1401]
+def ols_estimation():     
+                    
+    x_vals = [0.6931, 1.0986, 1.3863, 1.6094, 1.7918]   # факторы
+    y_vals = [0.4055, 1.0986, 1.5041, 1.9459, 3.1401]   # отклики (измерения, наблюдения)
 
-    xlst = np.array(x_vals)
+    xlst = np.array(x_vals)     # собираем данные в массив
     ylst = np.array(y_vals)
-    n = len(xlst)
+    n = len(xlst)               # запоминаем число измерений
 
-    # Матрица регрессоров [x^2, x, 1]
-    CM = np.zeros((n, 2))
+    RM = np.zeros((n, 2))       # заполнена нулями; n строк, 2 столбца, если МНК-прямая; для МНК-параболы 3 столбца
     for k in range(n):
-        CM[k, :] = [xlst[k], 1]
+        RM[k, :] = [xlst[k], 1] # первый столбец заполняется факторами; для МНК-параболы до xlist[k] вставить xlist**2[k]
 
-    # Инициализация на первых трёх точках
-    H0 = CM[:2].T @ CM[:2]                 # 3x3
-    x0 = np.linalg.inv(H0) @ CM[:2].T @ ylst[:2]   # начальные параметры
-    alst = np.zeros((2, n))
-    alst[:, 2] = x0                         # после третьей точки (индекс 2)
+    H0 = RM[:2].T @ RM[:2]                 # промежуточная матрица; начальная; считаем как C0^T * C0
+    x0 = np.linalg.inv(H0) @ RM[:2].T @ ylst[:2]   # начальные параметры; если МНК-прямая, то берем 2 штуки; для параболы - 3 и т.д.
+    alst = np.zeros((2, n))     # alist сохраняет историю оценок параметров МНК-поверхности; размерность 2 на n; используются для построения графиков
+    alst[:, 2] = x0
+    print(f"k = {1}: a = {x0[0]:.4f}, b = {x0[1]:.4f}")         
 
-    # Рекуррентное обновление
     for k in range(2, n):
-        H0 = H0 + np.outer(CM[k, :], CM[k, :])
-        x0 = x0 + np.linalg.inv(H0) @ CM[k, :] * (ylst[k] - CM[k, :] @ x0)
-        alst[:, k] = x0
-        print(f"k = {k}: a = {x0[0]:.4f}, b = {x0[1]:.4f}")
+        H0 = H0 + np.outer(RM[k, :].T, RM[k, :])  # H_k = H_k-1 + (C_k)^T * C_k
+        x0 = x0 + np.linalg.inv(H0) @ RM[k, :] * (ylst[k] - RM[k, :] @ x0)  # вычисление нового x_k
+        alst[:, k] = x0     # сохранение параметров
+        print(f"k = {k}: a = {x0[0]:.4f}, b = {x0[1]:.4f}")     # вывод текущей оценки параметров
 
-    # График сходимости параметров
-    idx = np.arange(2, n)   # с третьей точки
+    # Графики сходимости параметров
+    idx = np.arange(2, n)
     plt.figure()
+
     plt.subplot(3, 1, 1)
     plt.plot(idx, alst[0, idx], 'k', linewidth=2)
     plt.xlabel('k')
@@ -43,14 +42,23 @@ def ols_estimation_2():
     plt.ylabel('b_k')
     plt.grid()
 
+    # для МНК-параболы, график сходимости свободного коэффициента; 
+    # для больших размерностей МНК-кривой изменить первую тройку в subplot до нужной размерности
+
+    # plt.subplot(3, 1, 3)
+    # plt.plot(idx, alst[1, idx], 'k', linewidth=2)
+    # plt.xlabel('k')
+    # plt.ylabel('с_k')
+    # plt.grid()
+
     plt.tight_layout()
 
-    # Итоговая оценка параметров (последний столбец)
+    # вывод в консоль итоговых параметров МНК-кривой
     final_params = alst[:, -1]
     print("Итоговые параметры (a, b, c):", final_params)
 
-    # Аппроксимация
-    zlst = CM @ final_params
+    # Аппроксимация, построение МНК-кривой и пометка исходных точек звездами
+    zlst = RM @ final_params
 
     plt.figure()
     plt.plot(xlst, zlst, 'k', linewidth=2, label='Аппроксимация')
@@ -61,5 +69,6 @@ def ols_estimation_2():
     plt.legend()
     plt.show()
 
+# запуск скрипта
 if __name__ == "__main__":
-    ols_estimation_2()
+    ols_estimation()

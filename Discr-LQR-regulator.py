@@ -1,15 +1,16 @@
 import numpy as np
 from scipy.linalg import solve_discrete_are
 
-
-
 def dare_driver():
-    A = np.array([1.0])
-    B = np.array([1.0])
-    Q = np.array([1.0])
+    A = np.array([[1.0, 1.0],
+                  [0.0, 2.0]])
+    B = np.array([[0.0],
+                  [1.0]])
+    Q = np.array([[1.0, 0.0],
+                  [0.0, 0.0]])
 
     nx = A.shape[0]
-    nu = B.shape[0]
+    nu = B.shape[1]
 
     R = np.eye(nu)
 
