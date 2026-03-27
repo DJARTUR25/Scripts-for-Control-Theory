@@ -1,31 +1,38 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def ols_estimation_1():
-    xlst = np.array([-3.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0,
-                     0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
-    ylst = np.array([10.1267, 9.57937, 6.4242, 5.68413,
-                     4.35654, 3.15887, 2.5492, 1.85007,
-                     3.27934, 1.99238, 2.9698, 2.93076, 4.47339])
+def LQM():      # метод наименьших квадратов 
 
-    count = len(xlst)
+    x_vals = [0.6931, 1.0986, 1.3863, 1.6094, 1.7918]   # факторы
+    y_vals = [0.4055, 1.0986, 1.5041, 1.9459, 3.1401]   # отклики (измерения, наблюдения)
 
-    # Построение матрицы регрессоров
-    CM = np.zeros((count, 3))
-    for k in range(count):
-        CM[k, :] = [xlst[k]**2, xlst[k], 1]
+    xlst = np.array(x_vals)     # собираем данные в массив
+    ylst = np.array(y_vals)
+    n = len(xlst)               # запоминаем число измерений
 
-    params, residuals, rank, s = np.linalg.lstsq(CM, ylst, rcond=None)
+    # матрица регрессоров
+    RM = np.zeros((n, 2))       # заполнена нулями; n строк, 2 столбца, если МНК-прямая; для МНК-параболы 3 столбца
+    for k in range(n):
+        RM[k, :] = [xlst[k], 1] # первый столбец заполняется факторами; для МНК-параболы до xlist[k] вставить xlist**2[k]
 
-    zlst = CM @ params
+    CtC = np.dot(RM.transpose(), RM)         # C^T * C
+    print (CtC) # для отладки
+    CM = np.linalg.inv(CtC)                  # (C^T * C)^-1
+    print (CM) # для отладки
+    CtCC = np.dot(CM, RM.transpose())        # (C^T * C)^-1 * C^T
+    print (CtCC) # для отладки
+    params = np.dot(CtCC, ylst)              # (C^T * C)^-1 * C^T * y   - искомые параметры
+ 
+    zlst = np.dot(RM, params)       # значения для построения МНК-кривой и аппроксимации
 
-    print("Оценённые параметры (a, b, c) для полинома ax² + bx + c:")
-    print(f"a = {params[0]:.6f}")
-    print(f"b = {params[1]:.6f}")
-    print(f"c = {params[2]:.6f}")
+    print("Оценённые параметры:")
+    print(f"a = {params[0]:.4f}")
+    print(f"b = {params[1]:.4f}")
+    # print(f"c = {params[2]:.4f}") # раскомментировать, если МНК-парабола; добавить строки до нужной размерности
 
+    # построение графика МНК-кривой, аппроксимирующей наблюдения
     plt.figure()
-    plt.plot(xlst, zlst, 'k', linewidth=2.0, label='МНК-аппроксимация')
+    plt.plot(xlst, zlst, 'k', linewidth=2.0, label='МНК-кривая')
     plt.plot(xlst, ylst, '*r', label='Экспериментальные точки')
     plt.xlabel('x', fontsize=12, fontweight='bold')
     plt.ylabel('y', fontsize=12, fontweight='bold')
@@ -33,5 +40,6 @@ def ols_estimation_1():
     plt.legend()
     plt.show()
 
+# старт
 if __name__ == "__main__":
-    ols_estimation_1()
+    LQM()
