@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # Решение дискретного уравнения Риккати
 
-def solve_discrete(A, B, Q, R, x0, N=50):
+def solve_discrete(A, B, Q, R, x0, N=30):
 # параметры: A, B, Q, R - матрицы системы и функционала; x0 - начальное состояние; N - количество шагов моделирования
 
     X = solve_discrete_are(A, B, Q, R)  # решение дискретного уравнения Риккати через пакет scipy.linalg
@@ -18,15 +18,8 @@ def solve_discrete(A, B, Q, R, x0, N=50):
         # U = (B^T * X * B + R)^-1 * B^T * X * A
 
     A_cl = A - (B @ U)   # матрица замкнутой системы
+    print (A_cl)
 
-    eigen_values = np.linalg.eigvals(A_cl)  # вычисление собственных чисел замкнутой системы
-    for i in range(len(eigen_values)):
-        if np.real(eigen_values[i]) >= 0:
-            print("Замкнутая система неустойчива; есть собственное число > 0:")
-            print(eigen_values[i])
-
-    print ("С.ч. замкнутой системы:")
-    print(eigen_values)
 
     n = A.shape[0]  # размерность состояний
     m = B.shape[1]  # размерность входов управления
@@ -60,7 +53,7 @@ def plot_results(k_vals, x_seq, u_seq):
     axes[0].legend()
     axes[0].set_xlabel('k')
     axes[0].set_ylabel('x[k]')
-    axes[0].set_title('States')
+    axes[0].set_title('траектории состояний')
 
     # График оптимального управления
     if m == 1:
@@ -72,7 +65,7 @@ def plot_results(k_vals, x_seq, u_seq):
     axes[1].grid(True)
     axes[1].set_xlabel('k')
     axes[1].set_ylabel('u[k]')
-    axes[1].set_title('Control input')
+    axes[1].set_title('Оптимальное управление')
 
     plt.tight_layout()
     plt.show()
@@ -82,8 +75,8 @@ if __name__ == "__main__":
     # ввод матриц
 
 
-    A = np.array([[1.0, 1.0],
-                  [0.0, 2.0]])
+    A = np.array([[0.0, 1.0],
+                  [-1.0, 1.0]])
     
     B = np.array([[0.0],
                   [1.0]])
@@ -91,25 +84,12 @@ if __name__ == "__main__":
     Q = np.array([[1.0, 0.0],
                   [0.0, 0.0]])
     
-    # закомментирован неиспользуемый случай; оставил для удобства и быстрого напечатания
-    # A = np.array([[1.0, 0.0, 1.0],
-    #               [0.0, -1.0, 1.0],
-    #               [0.0, 0.0, 1.0]])
-    
-    # B = np.array([[0.0],
-    #               [0.0],
-    #               [1.0]])
-    
-    # Q = np.array([[1.0, 0.0, 0.0],
-    #               [0.0, 1.0, 0.0],
-    #               [0.0, 0.0, 1.0]])
-
     R = np.array([[1.0]])
 
     x0 = np.array([[0.1],
                    [0.1]])  # начальное состояние
 
-    N = 30  # количество шагов моделирования
+    N = 30 
 
     X, U, J, x_seq, u_seq = solve_discrete(A, B, Q, R, x0, N)
 
@@ -119,6 +99,7 @@ if __name__ == "__main__":
     print("\nU =")
     print(U)
     print(f"\nJ = {J:.6f}")
+    print(f"u* = {-U[0,0]:.4f} * x1,k + {-U[0,1]:.4f} * x2,k")
 
     # Построение графиков
     plot_results(np.arange(N + 1), x_seq, u_seq)
