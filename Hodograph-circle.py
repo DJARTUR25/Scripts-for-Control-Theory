@@ -1,11 +1,11 @@
 import numpy as np              
 import matplotlib.pyplot as plt 
 
-# скрипт для построения годографа Цыпкина-Поляка и квадратов робастной устойчивости для исследуемого полинома
-def robust_stability_square():
+# скрипт для построения годографа Цыпкина-Поляка и окружностей робастной устойчивости для исследуемого полинома
+def robust_stability_disk():
     
     # ВВОД 
-    ncffs = [433.5, 667.25, 502.72, 251.25, 80.25, 14, 1]   # коэф-ты номин.полинома (а^0); от старшей степени к младшей
+    ncffs = []   # коэф-ты номин.полинома (а^0); от старшей степени к младшей
     bcffs = [43.35, 33.36, 25.137, 15.075, 5.6175, 1.4, 0.1]    # коэффициенты граничного полинома (альфы)
     polydim = len(ncffs) # количество коэффициентов
 
@@ -41,20 +41,39 @@ def robust_stability_square():
         xy_ticks[1, k] = np.polyval(v0cffs, w) / den_v if den_v != 0 else np.nan    # аналогично для v_0(w)/v_a(w)
 
 
-    # поиск точек касания с квадратом робастной устойчивости
-    wp = np.convolve(u0cffs, vacffs) - np.convolve(v0cffs, uacffs)  # вспомогательные полиномы
-    wm = np.convolve(u0cffs, vacffs) + np.convolve(v0cffs, uacffs)  # np.convolve делает свертку
-    
-    rts = np.roots(wp).tolist() + np.roots(wm).tolist() # корни обоих полиномов, могут быть комплексными
-    rts = np.array(rts) # в массив для обработки
-    rts = rts[np.abs(np.imag(rts)) < 1e-10]     # оставляем те, чья мнимая часть близка к 0
-    rts = rts[np.real(rts) > 0]                 # оставляем только те, что лежат в правой полуплоскости
-    rts = np.real(rts)                          # оставляем только вещественную часть
+    # поиск точек касания с окружностью робастной устойчивости (условие d/dw (U^2+V^2)=0)
+    # производная отношения полиномов: (N/D)' = (N'*D - N*D')/D^2
+    def polyder_ratio(num, den):
+        num_der = np.polyder(num)
+        den_der = np.polyder(den)
+        num_res = np.convolve(num_der, den) - np.convolve(num, den_der)
+        return num_res   # знаменатель (D^2) не влияет на корни
 
-    # подсчет радиусов робастной устойчивости для найденных точек касания 
+    unum = polyder_ratio(u0cffs, uacffs)   # числитель производной U(w)
+    vnum = polyder_ratio(v0cffs, vacffs)   # числитель производной V(w)
+
+    # условие касания: d/dw (U^2+V^2) = 2U*U' + 2V*V' = 0 -> U*U' + V*V' = 0
+    # подставляем U = u0/u_a, V = v0/v_a, U' = unum/den_u^2, V' = vnum/den_v^2
+    # после приведения к общему знаменателю получаем полином:
+    conv1 = np.convolve(np.convolve(vnum, uacffs), np.convolve(v0cffs, uacffs))
+    conv2 = np.convolve(np.convolve(unum, vacffs), np.convolve(u0cffs, vacffs))
+    max_len = max(len(conv1), len(conv2))
+    conv1 = np.pad(conv1, (0, max_len - len(conv1)), constant_values=0)
+    conv2 = np.pad(conv2, (0, max_len - len(conv2)), constant_values=0)
+    res = conv1 + conv2    # результирующий полином, корни которого — частоты касания
+
+    rts = np.roots(res)                 # корни полинома (могут быть комплексными)
+    rts = np.array(rts)
+    rts = rts[np.abs(np.imag(rts)) < 1e-10]   # оставляем только вещественные
+    rts = rts[np.real(rts) > 0]               # оставляем только положительные частоты
+    rts = np.real(rts)                        # отбрасываем мнимую часть (она близка к нулю)
+
+    # подсчёт радиусов робастной устойчивости для найденных точек касания
     deltas = []         
-    for w in rts:           # для каждой найденной частоты касания считаем радиус робастной устойчивости (от начала координат до грани квадрата)
-        deltas.append(np.abs(np.polyval(u0cffs, w) / np.polyval(uacffs, w)))    # считаем как x(w) = |u_0(w)/u_a(w)|
+    for w in rts:           # для каждой найденной частоты касания считаем радиус окружности
+        x = np.polyval(u0cffs, w) / np.polyval(uacffs, w)
+        y = np.polyval(v0cffs, w) / np.polyval(vacffs, w)
+        deltas.append(np.sqrt(x**2 + y**2))   # расстояние от начала координат до точки годографа
     deltas = np.array(sorted(deltas))          # сортируем по возрастанию
 
     # построение графиков
@@ -63,15 +82,16 @@ def robust_stability_square():
 
     plt.figure(figsize=(7, 7))
     plt.plot(xy_ticks[0, :], xy_ticks[1, :], 'b', linewidth=2.0, label='Годограф')
+    
+    phi = np.linspace(0, 2 * np.pi, 100)   # углы для рисования окружности
     for i, delta in enumerate(deltas):
-        vtx = np.array([[ delta, -delta, -delta,  delta,  delta],       # квадрат со стороной 2*delta
-                        [ delta,  delta, -delta, -delta,  delta]])
-        plt.plot(vtx[0, :], vtx[1, :], color=my_col[i], linewidth=2.0, label=f'{strs[i]}')
+        plt.plot(delta * np.cos(phi), delta * np.sin(phi),
+                 color=my_col[i], linewidth=2.0, label=f'{strs[i]}')
 
     plt.grid(True)
     plt.axis('equal')   # одинаковый масштаб по осям
     plt.legend()
-    plt.title('Годограф и квадраты робастной устойчивости')
+    plt.title('Годограф и окружности робастной устойчивости')
     plt.xlabel('Re')
     plt.ylabel('Im')
     plt.show()
@@ -82,15 +102,15 @@ def robust_stability_square():
         print(f"  {strs[i]}")
     print(f"\nδ* = {min(deltas):.5f}")
     
-    a_0_star = ncffs[0] / bcffs[0] # коэффициент a* для сравнения с δ_max
-    a_n_star = ncffs[-1] / bcffs[-1] # коэффициент a_n для сравнения с δ_max
+    a_0_star = ncffs[0] / bcffs[0]      # коэффициент a* для сравнения с δ_max
+    a_n_star = ncffs[-1] / bcffs[-1]    # коэффициент a_n для сравнения с δ_max
     print(f"Коэффициент a* = {a_0_star:.5f}")
     print(f"Коэффициент a_n = {a_n_star:.5f}")
 
     delta_star = min(deltas)
-    answer = min(delta_star, a_0_star, a_n_star) # наибольший радиус робастной устойчивости
+    answer = min(delta_star, a_0_star, a_n_star)   # наибольший гарантированный радиус робастной устойчивости
     print(f"\nОтвет: δ_max = {answer:.5f}")
 
 # запуск скрипта
 if __name__ == '__main__':
-    robust_stability_square()
+    robust_stability_disk()
