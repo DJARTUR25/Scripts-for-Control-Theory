@@ -51,23 +51,23 @@ def robust_stability_square():
     rts = rts[np.real(rts) > 0]                 # оставляем только те, что лежат в правой полуплоскости
     rts = np.real(rts)                          # оставляем только вещественную часть
 
+
     # подсчет радиусов робастной устойчивости для найденных точек касания 
     deltas = []         
     for w in rts:           # для каждой найденной частоты касания считаем радиус робастной устойчивости (от начала координат до грани квадрата)
         deltas.append(np.abs(np.polyval(u0cffs, w) / np.polyval(uacffs, w)))    # считаем как x(w) = |u_0(w)/u_a(w)|
     deltas = np.array(sorted(deltas))          # сортируем по возрастанию
 
+
     # построение графиков
     strs = [f'{d:.5g}' for d in deltas] # легенда
     my_col = plt.cm.jet(np.linspace(0, 1, len(deltas)))[::-1] # цветовая гамма
-
     plt.figure(figsize=(7, 7))
     plt.plot(xy_ticks[0, :], xy_ticks[1, :], 'b', linewidth=2.0, label='Годограф')
     for i, delta in enumerate(deltas):
         vtx = np.array([[ delta, -delta, -delta,  delta,  delta],       # квадрат со стороной 2*delta
                         [ delta,  delta, -delta, -delta,  delta]])
         plt.plot(vtx[0, :], vtx[1, :], color=my_col[i], linewidth=2.0, label=f'{strs[i]}')
-
     plt.grid(True)
     plt.axis('equal')   # одинаковый масштаб по осям
     plt.legend()
@@ -76,17 +76,16 @@ def robust_stability_square():
     plt.ylabel('Im')
     plt.show()
     
+    
     # вывод результатов
     print("Найденные радиусы (δ):")
     for i, d in enumerate(deltas):
         print(f"  {strs[i]}")
     print(f"\nδ* = {min(deltas):.5f}")
-    
     a_0_star = ncffs[0] / bcffs[0] # коэффициент a* для сравнения с δ_max
     a_n_star = ncffs[-1] / bcffs[-1] # коэффициент a_n для сравнения с δ_max
     print(f"Коэффициент a* = {a_0_star:.5f}")
     print(f"Коэффициент a_n = {a_n_star:.5f}")
-
     delta_star = min(deltas)
     answer = min(delta_star, a_0_star, a_n_star) # наибольший радиус робастной устойчивости
     print(f"\nОтвет: δ_max = {answer:.5f}")
