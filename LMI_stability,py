@@ -1,0 +1,33 @@
+import numpy as np
+import cvxpy as cp
+import warnings
+
+def continuous_system_stability_test():
+    A = np.array( [ 2.6649, -2.8342,  0.0175],
+                  [ 0.0344,  0.0005, -3.1772])
+
+    nx = A.shape[0]
+
+    # Переменная LMI
+    X = cp.Variable((nx, nx), symmetric=True)
+
+    # Ограничения: A'*X + X*A < -0.001*I, X > 0
+    eps = 0.001
+    constraints = [
+        A.T @ X + X @ A <= -eps * np.eye(nx),
+        X >> 0   # X положительно определена
+    ]
+
+    objective = cp.Minimize(0)
+    problem = cp.Problem(objective, constraints)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        problem.solve(solver=cp.SCS, verbose=False)
+
+    # Вывод результатов
+    print("X =\n", X.value)
+    print("Собственные числа A:\n", np.linalg.eigvals(A))
+
+if __name__ == "__main__":
+    continuous_system_stability_test()
