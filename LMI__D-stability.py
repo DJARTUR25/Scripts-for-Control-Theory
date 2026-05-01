@@ -2,49 +2,89 @@ import numpy as np
 import cvxpy as cp
 import warnings
 
-def continuous_system_d_stability_test():
-    # Матрица системы
-    A = np.array([[-4.2386, -0.2026,  0.7193],
-                  [ 2.6649, -2.8342,  0.0175],
-                  [ 0.0344,  0.0005, -3.1772]])
+def d_stabilizing_control_design():
+    # Матрицы системы
+    A = np.array([[-1.,  2.,  0.],
+                  [ 0.,  0.5, 1.],
+                  [ 1.,  0., -2.]])
+    B = np.array([[0],
+                  [1],
+                  [1]])
 
-    # Параметры LMI-области
-    L1 = 4
-    M1 = 1
-    L2 = np.array([[-9,  3],
-                   [ 3, -1]])
-    M2 = np.array([[0, 1],
+    L1 = np.array([[-2,  1],
+                   [ 1, -2]])
+    M1 = np.array([[0, 1],
                    [0, 0]])
 
+    L2 = 2
+    M2 = 1 
+
     nx = A.shape[0]
+    nu = B.shape[1]
 
-    # Переменная LMI
-    X = cp.Variable((nx, nx), symmetric=True)
+    Y = cp.Variable((nx, nx), symmetric=True)
+    Z = cp.Variable((nu, nx))
 
-    term1_1 = np.kron(L1, X)
-    term1_2 = np.kron(M1, A @ X)
-    term1_3 = np.kron(M1, X @ A.T)
+    A_cl = A @ Y + B @ Z
 
-    term2_1 = np.kron(L2, X)
-    term2_2 = np.kron(M2, A @ X)
-    term2_3 = np.kron(M2.T, X @ A.T)
+    L11, L12 = L1[0,0], L1[0,1]
+    L21, L22 = L1[1,0], L1[1,1]
+    top_L1 = cp.hstack([L11 * Y, L12 * Y])
+    bottom_L1 = cp.hstack([L21 * Y, L22 * Y])
+    kron_L1_Y = cp.vstack([top_L1, bottom_L1])
 
-    eps = 0.001
-    constraints = [
-        term1_1 + term1_2 + term1_3 <= -eps * np.eye(2 * nx),
-        term2_1 + term2_2 + term2_3 <= np.zeros((2 * nx, 2 * nx)),
-        X >> 0
-    ]
+    M11, M12 = M1[0,0], M1[0,1]
+    M21, M22 = M1[1,0], M1[1,1]
+    top_M1 = cp.hstack([M11 * A_cl, M12 * A_cl])
+    bottom_M1 = cp.hstack([M21 * A_cl, M22 * A_cl])
+    kron_M1_Acl = cp.vstack([top_M1, bottom_M1])
+
+    M1T = M1.T
+    M1T11, M1T12 = M1T[0,0], M1T[0,1]
+    M1T21, M1T22 = M1T[1,0], M1T[1,1]
+    Acl_T = A_cl.T
+    top_M1T = cp.hstack([M1T11 * Acl_T, M1T12 * Acl_T])
+    bottom_M1T = cp.hstack([M1T21 * Acl_T, M1T22 * Acl_T])
+    kron_M1T_AclT = cp.vstack([top_M1T, bottom_M1T])
+
+    term1 = kron_L1_Y + kron_M1_Acl + kron_M1T_AclT
+    eps = 1e-6
+    constr1 = term1 <= -eps * np.eye(2 * nx) 
+
+    term2 = L2 * Y + M2 * A_cl + M2 * A_cl.T
+    constr2 = term2 <= -eps * np.eye(nx)
+
+    constraints = [constr1, constr2, Y >> 0]
 
     objective = cp.Minimize(0)
     problem = cp.Problem(objective, constraints)
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        problem.solve(solver=cp.SCS, verbose=False)
+        problem.solve(solver=cp.SCS, verbose=False, max_iters=5000)
 
-    print("X =\n", X.value)
-    print("Собственные числа A:\n", np.linalg.eigvals(A))
+    if Y.value is None:
+        print("LMI неразрешима")
+        return
+
+    Y_val = Y.value
+    Z_val = Z.value
+    G = Z_val @ np.linalg.inv(Y_val)
+
+    print("Матрица обратной связи G =")
+    print(G)
+    print("\nСобственные числа замкнутой системы A + B*G:")
+    eigvals = np.linalg.eigvals(A + B @ G)
+    print(eigvals)
+
+    # Проверка принадлежности области D
+    print("\nПроверка принадлежности области D:")
+    for i, lam in enumerate(eigvals):
+        x = np.real(lam)
+        y = np.imag(lam)
+        in_circle = (x+1)**2 + y**2 < 4
+        in_halfplane = x < -1
+        print(f"λ{i+1} = {lam:.5f}: в круге? {in_circle}, в полуплоскости? {in_halfplane}")
 
 if __name__ == "__main__":
-    continuous_system_d_stability_test()
+    d_stabilizing_control_design()

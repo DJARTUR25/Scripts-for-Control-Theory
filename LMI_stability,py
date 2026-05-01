@@ -3,8 +3,9 @@ import cvxpy as cp
 import warnings
 
 def continuous_system_stability_test():
-    A = np.array( [ 2.6649, -2.8342,  0.0175],
-                  [ 0.0344,  0.0005, -3.1772])
+    A = np.array([[-4.2386, -0.2026,  0.7193],
+                  [ 2.6649, -2.8342,  0.0175],
+                  [ 0.0344,  0.0005, -3.1772]])
 
     nx = A.shape[0]
 

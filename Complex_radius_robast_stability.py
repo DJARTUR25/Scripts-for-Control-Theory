@@ -1,13 +1,15 @@
 import numpy as np
 from scipy.linalg import solve_continuous_are
 
-A = np.array([[-1., 0.],
-              [2., -2.]])
-B = np.array([[0.],
-              [0.]])
-C = np.array([[0., 1.]])
+A = np.array([[-16., -19., 6.],
+              [17., 20., -7.], 
+              [15., 18., -6.]])
+B = np.array([[-1.],
+              [1.],
+              [1.]])
+C = np.array([[6., 5., 1.]])
 
-a = 1e-3
+a = 1e-6
 b = 100.0
 eps = 1e-10
 
@@ -17,7 +19,7 @@ print(' |             РОБАСТНОЙ УСТОЙЧИВОСТИ            |')
 print(' |-----|-------------|-------------|-------------|')
 print(' | шаг |      a      |      b      |      c      |')
 
-for it in range(1, 101):
+for it in range(1, 1001):
     c = 0.5 * (a + b)
     print(' |-----|-------------|-------------|-------------|')
     print(f' | {it:3d} | {a:.5e} | {b:.5e} | {c:.5e} |')
