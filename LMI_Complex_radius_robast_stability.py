@@ -10,7 +10,6 @@ C = np.array([[6, 5, 1]])
 def lmi_feasible(gamma):
     n = A.shape[0]
     X = cp.Variable((n, n), symmetric=True)
-    # Блочная LMI
     top_left = A.T @ X + X @ A
     top_mid = X @ B
     top_right = C.T
@@ -28,7 +27,6 @@ def lmi_feasible(gamma):
 
     constraints = [LMI << -1e-7 * np.eye(LMI.shape[0]), X >> 1e-7 * np.eye(n)]
     prob = cp.Problem(cp.Minimize(0), constraints)
-    # Пытаемся использовать CVXOPT (точнее), если нет – SCS с высокими итерациями
     try:
         prob.solve(solver=cp.CVXOPT, verbose=False, abstol=1e-9, reltol=1e-9)
     except:
